@@ -4,6 +4,7 @@ import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.JavaScriptModule;
 import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
@@ -33,7 +34,7 @@ public class RNX5WebViewPackage implements ReactPackage {
 
     private RNX5WebViewManager viewManager;
 
-    public class X5WebViewModule extends ReactContextBaseJavaModule {
+    public class X5WebViewModule extends ReactContextBaseJavaModule implements ActivityEventListener {
 
         private RNX5WebViewPackage aPackage;
 
@@ -48,7 +49,9 @@ public class RNX5WebViewPackage implements ReactPackage {
 
         public X5WebViewModule(ReactApplicationContext reactContext) {
             super(reactContext);
+            reactContext.addActivityEventListener(this);
             mReactContext = reactContext;
+
         }
 
         @Override
@@ -80,6 +83,7 @@ public class RNX5WebViewPackage implements ReactPackage {
             if (mUploadMessage != null) {
                 mUploadMessage.onReceiveValue(null);
                 mUploadMessage = null;
+
             }
 
             mUploadMessage = uploadMsg;
@@ -119,7 +123,6 @@ public class RNX5WebViewPackage implements ReactPackage {
                 mUploadMessageArr.onReceiveValue(null);
                 mUploadMessageArr = null;
             }
-
             mUploadMessageArr = filePathCallback;
 
             Activity currentActivity = getCurrentActivity();

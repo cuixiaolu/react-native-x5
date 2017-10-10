@@ -286,6 +286,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         // For Android 4.1+
         @SuppressWarnings("unused")
         public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
+
             aPackage.getModule().startFileChooserIntent(uploadMsg, acceptType);
         }
 
@@ -293,6 +294,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         @SuppressLint("NewApi")
         public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
                 FileChooserParams fileChooserParams) {
+
             return aPackage.getModule().startFileChooserIntent(filePathCallback, fileChooserParams.createIntent());
         }
     }
@@ -342,6 +344,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
 
 
     public GeoWebChromeClient getGeoClient() {
+
         return new GeoWebChromeClient();
     }
 
