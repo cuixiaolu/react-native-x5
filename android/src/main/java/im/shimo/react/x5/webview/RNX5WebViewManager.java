@@ -1,6 +1,5 @@
 package im.shimo.react.x5.webview;
 
-
 import javax.annotation.Nullable;
 
 import java.io.UnsupportedEncodingException;
@@ -8,13 +7,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-
-import android.graphics.Bitmap;
-import android.graphics.Picture;
-import android.os.Build;
-import android.text.TextUtils;
-import android.util.Log;
-import android.view.ViewGroup.LayoutParams;
 
 import com.facebook.common.logging.FLog;
 import com.facebook.react.common.ReactConstants;
@@ -28,12 +20,9 @@ import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.WebViewClient;
 import com.tencent.smtt.sdk.WebChromeClient;
 
-
-
 import com.facebook.react.views.webview.events.TopLoadingErrorEvent;
 import com.facebook.react.views.webview.events.TopLoadingFinishEvent;
 import com.facebook.react.views.webview.events.TopLoadingStartEvent;
-
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
@@ -50,9 +39,18 @@ import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.Event;
 import com.facebook.react.uimanager.events.EventDispatcher;
+
+import android.graphics.Bitmap;
+import android.graphics.Picture;
+import android.os.Build;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.ViewGroup.LayoutParams;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.webkit.JavascriptInterface;
+import android.webkit.GeolocationPermissions;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -98,6 +96,8 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
     // state and release page resources (including any running JavaScript).
     private static final String BLANK_URL = "about:blank";
 
+    private RNX5WebViewPackage aPackage;
+
     private RNX5WebViewConfig mWebViewConfig;
     private @Nullable WebView.PictureListener mPictureListener;
 
@@ -122,17 +122,12 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             super.onPageStarted(webView, url, favicon);
             mLastLoadFailed = false;
 
-            dispatchEvent(
-                    webView,
-                    new TopLoadingStartEvent(
-                            webView.getId(),
-                            createWebViewEvent(webView, url)));
+            dispatchEvent(webView, new TopLoadingStartEvent(webView.getId(), createWebViewEvent(webView, url)));
         }
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            if (url.startsWith("http://") || url.startsWith("https://") ||
-                    url.startsWith("file://")) {
+            if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://")) {
                 return false;
             } else {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -143,11 +138,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         }
 
         @Override
-        public void onReceivedError(
-                WebView webView,
-                int errorCode,
-                String description,
-                String failingUrl) {
+        public void onReceivedError(WebView webView, int errorCode, String description, String failingUrl) {
             super.onReceivedError(webView, errorCode, description, failingUrl);
             mLastLoadFailed = true;
 
@@ -159,28 +150,18 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             eventData.putDouble("code", errorCode);
             eventData.putString("description", description);
 
-            dispatchEvent(
-                    webView,
-                    new TopLoadingErrorEvent(webView.getId(), eventData));
+            dispatchEvent(webView, new TopLoadingErrorEvent(webView.getId(), eventData));
         }
 
         @Override
         public void doUpdateVisitedHistory(WebView webView, String url, boolean isReload) {
             super.doUpdateVisitedHistory(webView, url, isReload);
 
-            dispatchEvent(
-                    webView,
-                    new TopLoadingStartEvent(
-                            webView.getId(),
-                            createWebViewEvent(webView, url)));
+            dispatchEvent(webView, new TopLoadingStartEvent(webView.getId(), createWebViewEvent(webView, url)));
         }
 
         private void emitFinishEvent(WebView webView, String url) {
-            dispatchEvent(
-                    webView,
-                    new TopLoadingFinishEvent(
-                            webView.getId(),
-                            createWebViewEvent(webView, url)));
+            dispatchEvent(webView, new TopLoadingFinishEvent(webView.getId(), createWebViewEvent(webView, url)));
         }
 
         private WritableMap createWebViewEvent(WebView webView, String url) {
@@ -263,9 +244,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         }
 
         public void callInjectedJavaScript() {
-            if (getSettings().getJavaScriptEnabled() &&
-                    injectedJS != null &&
-                    !TextUtils.isEmpty(injectedJS)) {
+            if (getSettings().getJavaScriptEnabled() && injectedJS != null && !TextUtils.isEmpty(injectedJS)) {
                 loadUrl("javascript:(function() {\n" + injectedJS + ";\n})();");
             }
         }
@@ -279,18 +258,16 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
                         @Override
                         public void onReceiveValue(String value) {
                             if (value.equals("true")) {
-                                FLog.w(ReactConstants.TAG, "Setting onMessage on a WebView overrides existing values of window.postMessage, but a previous value was defined");
+                                FLog.w(ReactConstants.TAG,
+                                        "Setting onMessage on a WebView overrides existing values of window.postMessage, but a previous value was defined");
                             }
                         }
                     });
                 }
 
-                loadUrl("javascript:(" +
-                        "window.originalPostMessage = window.postMessage," +
-                        "window.postMessage = function(data) {" +
-                        BRIDGE_NAME + ".postMessage(String(data));" +
-                        "}" +
-                        ")");
+                loadUrl("javascript:(" + "window.originalPostMessage = window.postMessage,"
+                        + "window.postMessage = function(data) {" + BRIDGE_NAME + ".postMessage(String(data));" + "}"
+                        + ")");
             }
         }
 
@@ -302,21 +279,46 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             setWebViewClient(null);
             destroy();
         }
+
+    }
+
+    protected class CustomWebChromeClient extends WebChromeClient {
+        // For Android 4.1+
+        @SuppressWarnings("unused")
+        public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
+            aPackage.getModule().startFileChooserIntent(uploadMsg, acceptType);
+        }
+
+        // For Android 5.0+
+        @SuppressLint("NewApi")
+        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
+                FileChooserParams fileChooserParams) {
+            return aPackage.getModule().startFileChooserIntent(filePathCallback, fileChooserParams.createIntent());
+        }
+    }
+
+    protected class GeoWebChromeClient extends CustomWebChromeClient {
+        // @Override
+        public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+            callback.invoke(origin, true, false);
+        }
     }
 
     public RNX5WebViewManager(ReactContext reactContext) {
         QbSdk.setTbsListener(new TbsListener() {
             @Override
             public void onDownloadFinish(int i) {
-                Log.d("react-native-x5","onDownloadFinish");
+                Log.d("react-native-x5", "onDownloadFinish");
             }
+
             @Override
             public void onInstallFinish(int i) {
-                Log.d("react-native-x5","onInstallFinish");
+                Log.d("react-native-x5", "onInstallFinish");
             }
+
             @Override
             public void onDownloadProgress(int i) {
-                Log.d("react-native-x5","onDownloadProgress:"+i);
+                Log.d("react-native-x5", "onDownloadProgress:" + i);
             }
         });
 
@@ -325,6 +327,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             public void onViewInitFinished(boolean arg0) {
                 Log.d("react-native-x5", " onViewInitFinished is " + arg0);
             }
+
             @Override
             public void onCoreInitFinished() {
                 Log.d("react-native-x5", " onCoreInitFinished ");
@@ -332,29 +335,28 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         });
 
         mWebViewConfig = new RNX5WebViewConfig() {
-            public void configWebView(WebView webView) {}
+            public void configWebView(WebView webView) {
+            }
         };
+    }
+
+
+    public GeoWebChromeClient getGeoClient() {
+        return new GeoWebChromeClient();
     }
 
     @Override
     protected WebView createViewInstance(ThemedReactContext reactContext) {
         X5WeView webView = new X5WeView(reactContext);
 
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissionsCallback callback) {
-                callback.invoke(origin, true, false);
-            }
-        });
+        webView.setWebChromeClient(getGeoClient());
         reactContext.addLifecycleEventListener(webView);
         mWebViewConfig.configWebView(webView);
         webView.getSettings().setBuiltInZoomControls(true);
         webView.getSettings().setDisplayZoomControls(false);
 
         // Fixes broken full-screen modals/galleries due to body height being 0.
-        webView.setLayoutParams(
-                new LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT));
+        webView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         if (ReactBuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true);
@@ -362,6 +364,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
 
         return webView;
     }
+
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -416,8 +419,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             if (source.hasKey("html")) {
                 String html = source.getString("html");
                 if (source.hasKey("baseUrl")) {
-                    view.loadDataWithBaseURL(
-                            source.getString("baseUrl"), html, HTML_MIME_TYPE, HTML_ENCODING, null);
+                    view.loadDataWithBaseURL(source.getString("baseUrl"), html, HTML_MIME_TYPE, HTML_ENCODING, null);
                 } else {
                     view.loadData(html, HTML_MIME_TYPE, HTML_ENCODING);
                 }
@@ -487,38 +489,35 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
 
     @Override
     public @Nullable Map<String, Integer> getCommandsMap() {
-        return MapBuilder.of(
-                "goBack", COMMAND_GO_BACK,
-                "goForward", COMMAND_GO_FORWARD,
-                "reload", COMMAND_RELOAD,
-                "stopLoading", COMMAND_STOP_LOADING,
-                "postMessage", COMMAND_POST_MESSAGE);
+        return MapBuilder.of("goBack", COMMAND_GO_BACK, "goForward", COMMAND_GO_FORWARD, "reload", COMMAND_RELOAD,
+                "stopLoading", COMMAND_STOP_LOADING, "postMessage", COMMAND_POST_MESSAGE);
     }
 
     @Override
     public void receiveCommand(WebView root, int commandId, @Nullable ReadableArray args) {
         switch (commandId) {
-            case COMMAND_GO_BACK:
-                root.goBack();
-                break;
-            case COMMAND_GO_FORWARD:
-                root.goForward();
-                break;
-            case COMMAND_RELOAD:
-                root.reload();
-                break;
-            case COMMAND_STOP_LOADING:
-                root.stopLoading();
-                break;
-            case COMMAND_POST_MESSAGE:
-                try {
-                    JSONObject eventInitDict = new JSONObject();
-                    eventInitDict.put("data", args.getString(0));
-                    root.loadUrl("javascript:(document.dispatchEvent(new MessageEvent('message', " + eventInitDict.toString() + ")))");
-                } catch (JSONException e) {
-                    throw new RuntimeException(e);
-                }
-                break;
+        case COMMAND_GO_BACK:
+            root.goBack();
+            break;
+        case COMMAND_GO_FORWARD:
+            root.goForward();
+            break;
+        case COMMAND_RELOAD:
+            root.reload();
+            break;
+        case COMMAND_STOP_LOADING:
+            root.stopLoading();
+            break;
+        case COMMAND_POST_MESSAGE:
+            try {
+                JSONObject eventInitDict = new JSONObject();
+                eventInitDict.put("data", args.getString(0));
+                root.loadUrl("javascript:(document.dispatchEvent(new MessageEvent('message', "
+                        + eventInitDict.toString() + ")))");
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+            break;
         }
     }
 
@@ -534,12 +533,8 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
             mPictureListener = new WebView.PictureListener() {
                 @Override
                 public void onNewPicture(WebView webView, Picture picture) {
-                    dispatchEvent(
-                            webView,
-                            new ContentSizeChangeEvent(
-                                    webView.getId(),
-                                    webView.getWidth(),
-                                    webView.getContentHeight()));
+                    dispatchEvent(webView, new ContentSizeChangeEvent(webView.getId(), webView.getWidth(),
+                            webView.getContentHeight()));
                 }
             };
         }
@@ -548,11 +543,15 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
 
     private static void dispatchEvent(WebView webView, Event event) {
         ReactContext reactContext = (ReactContext) webView.getContext();
-        EventDispatcher eventDispatcher =
-                reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
         eventDispatcher.dispatchEvent(event);
     }
+
+    public void setPackage(RNX5WebViewPackage aPackage) {
+        this.aPackage = aPackage;
+    }
+
+    public RNX5WebViewPackage getPackage() {
+        return this.aPackage;
+    }
 }
-
-
-

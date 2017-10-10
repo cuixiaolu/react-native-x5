@@ -13,9 +13,36 @@ import java.util.Collections;
 import java.util.List;
 import com.tencent.smtt.sdk.WebView;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
+import android.webkit.JsResult;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 
 public class RNX5WebViewPackage implements ReactPackage {
-    private class X5WebViewModule extends ReactContextBaseJavaModule {
+
+    private X5WebViewModule module;
+
+    private RNX5WebViewManager viewManager;
+
+    public class X5WebViewModule extends ReactContextBaseJavaModule {
+
+        private RNX5WebViewPackage aPackage;
+
+        private ValueCallback<Uri> mUploadMessage = null;
+        private ValueCallback<Uri[]> mUploadMessageArr = null;
+
+        /* FOR UPLOAD DIALOG */
+        private final static int REQUEST_SELECT_FILE = 1001;
+        private final static int REQUEST_SELECT_FILE_LEGACY = 1002;
 
         private ReactApplicationContext mReactContext;
 
@@ -33,12 +60,121 @@ public class RNX5WebViewPackage implements ReactPackage {
         public void getX5CoreVersion(Callback callback) {
             callback.invoke(WebView.getTbsCoreVersion(mReactContext));
         }
+
+        public void setPackage(RNX5WebViewPackage aPackage) {
+            this.aPackage = aPackage;
+        }
+
+        public RNX5WebViewPackage getPackage() {
+            return this.aPackage;
+        }
+
+        @SuppressWarnings("unused")
+        public Activity getActivity() {
+            return getCurrentActivity();
+        }
+
+        // For Android 4.1+
+        @SuppressWarnings("unused")
+        public boolean startFileChooserIntent(ValueCallback<Uri> uploadMsg, String acceptType) {
+            if (mUploadMessage != null) {
+                mUploadMessage.onReceiveValue(null);
+                mUploadMessage = null;
+            }
+
+            mUploadMessage = uploadMsg;
+
+            if (acceptType == null || acceptType.isEmpty()) {
+                acceptType = "*/*";
+            }
+
+            Intent intentChoose = new Intent(Intent.ACTION_GET_CONTENT);
+            intentChoose.addCategory(Intent.CATEGORY_OPENABLE);
+            intentChoose.setType(acceptType);
+
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity == null) {
+                return false;
+            }
+
+            try {
+                currentActivity.startActivityForResult(intentChoose, REQUEST_SELECT_FILE_LEGACY, new Bundle());
+            } catch (ActivityNotFoundException e) {
+                e.printStackTrace();
+
+                if (mUploadMessage != null) {
+                    mUploadMessage.onReceiveValue(null);
+                    mUploadMessage = null;
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+        // For Android 5.0+
+        @SuppressLint("NewApi")
+        public boolean startFileChooserIntent(ValueCallback<Uri[]> filePathCallback, Intent intentChoose) {
+            if (mUploadMessageArr != null) {
+                mUploadMessageArr.onReceiveValue(null);
+                mUploadMessageArr = null;
+            }
+
+            mUploadMessageArr = filePathCallback;
+
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity == null) {
+                return false;
+            }
+
+            try {
+                currentActivity.startActivityForResult(intentChoose, REQUEST_SELECT_FILE, new Bundle());
+            } catch (ActivityNotFoundException e) {
+                e.printStackTrace();
+
+                if (mUploadMessageArr != null) {
+                    mUploadMessageArr.onReceiveValue(null);
+                    mUploadMessageArr = null;
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+        @SuppressLint({ "NewApi", "Deprecated" })
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
+            if (requestCode == REQUEST_SELECT_FILE_LEGACY) {
+                if (mUploadMessage == null)
+                    return;
+
+                Uri result = ((data == null || resultCode != Activity.RESULT_OK) ? null : data.getData());
+
+                mUploadMessage.onReceiveValue(result);
+                mUploadMessage = null;
+            } else if (requestCode == REQUEST_SELECT_FILE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (mUploadMessageArr == null)
+                    return;
+
+                mUploadMessageArr.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+                mUploadMessageArr = null;
+            }
+        }
+
+        public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+            this.onActivityResult(requestCode, resultCode, data);
+        }
+
+        public void onNewIntent(Intent intent) {
+        }
     }
 
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
+        module = new X5WebViewModule(reactContext);
+        module.setPackage(this);
         List<NativeModule> modules = new ArrayList<>();
-        modules.add(new X5WebViewModule(reactContext));
+        modules.add(module);
         return modules;
     }
 
@@ -49,8 +185,17 @@ public class RNX5WebViewPackage implements ReactPackage {
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
+        viewManager = new RNX5WebViewManager(reactContext);
+        viewManager.setPackage(this);
         List<ViewManager> modules = new ArrayList<>();
-        modules.add(new RNX5WebViewManager(reactContext));
+        modules.add(viewManager);
         return modules;
+    }
+    public X5WebViewModule getModule() {
+        return module;
+    }
+
+    public RNX5WebViewManager getViewManager() {
+        return viewManager;
     }
 }
