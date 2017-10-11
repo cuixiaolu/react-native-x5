@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-
 import com.facebook.common.logging.FLog;
 import com.facebook.react.common.ReactConstants;
 import com.facebook.react.uimanager.events.ContentSizeChangeEvent;
@@ -342,7 +341,6 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         };
     }
 
-
     public GeoWebChromeClient getGeoClient() {
 
         return new GeoWebChromeClient();
@@ -353,6 +351,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         X5WeView webView = new X5WeView(reactContext);
 
         webView.setWebChromeClient(getGeoClient());
+        webView.setDownloadListener(new RNX5WebViewDownload(reactContext));
         reactContext.addLifecycleEventListener(webView);
         mWebViewConfig.configWebView(webView);
         webView.getSettings().setBuiltInZoomControls(true);
