@@ -2,7 +2,8 @@ package im.shimo.react.x5.webview;
 
 import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.DownloadListener;
-
+import com.tencent.smtt.sdk.CookieManager;
+import com.tencent.smtt.sdk.CookieSyncManager;
 
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -15,8 +16,10 @@ import android.os.Build;
 import android.os.Environment;
 import android.content.pm.ResolveInfo;
 import android.content.pm.PackageManager;
+import android.webkit.URLUtil;
 
 import java.util.List;
+
 /**
  * 下载
  */
@@ -24,42 +27,45 @@ public class RNX5WebViewDownload implements DownloadListener {
     ReactContext reactContext;
 
     public RNX5WebViewDownload(ReactContext reactContext) {
-         this.reactContext = reactContext;
-     }
+        this.reactContext = reactContext;
+    }
 
     @Override
     public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype,
-                                long contentLength) {
+            long contentLength) {
         try {
 
-            if (!isDownloadManagerAvailable(reactContext)) {
-                Uri uri = Uri.parse(url);
+            Uri uri = Uri.parse(url);
+            if (!isDownloadManagerAvailable(reactContext))
+            // if (1==1)
+            {
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 reactContext.startActivity(intent);
             } else {
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                Uri uri = Uri.parse(url);
-                String[] path = uri.getPath().split("/");
-                String  fileName = "";
-                if(path.length>1){
-                    fileName = path[path.length - 1];
-                }
+                DownloadManager.Request request = new DownloadManager.Request(uri);
+
+                request.setMimeType(mimetype);
+                String cookies = CookieManager.getInstance().getCookie(url);
+                request.addRequestHeader("cookie", cookies);
+                request.addRequestHeader("User-Agent", userAgent);
+
+                String fileName = URLUtil.guessFileName(url, contentDisposition,
+                mimetype);
                 request.setTitle(fileName);
-                request.setDescription("下载完成后，点击开始安装。");
-// in order for this if to run, you must use the android 3.2 to compile your app
+                // in order for this if to run, you must use the android 3.2 to compile your app
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
                     request.allowScanningByMediaScanner();
                     request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
                 }
                 request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-// get download service and enqueue file
+                // get download service and enqueue file
                 DownloadManager manager = (DownloadManager) reactContext.getSystemService(Context.DOWNLOAD_SERVICE);
                 manager.enqueue(request);
 
-               // 开始下载了，就发送一个 事件通知到 React Native 做相关处理，记得加上监听
-               reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("NativeCustomEvent", "startDownload");
+                // 开始下载了，就发送一个 事件通知到 React Native 做相关处理，记得加上监听
+                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("NativeCustomEvent",
+                        "startDownload");
             }
 
         } catch (Exception e) {
@@ -79,7 +85,8 @@ public class RNX5WebViewDownload implements DownloadListener {
             }
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            intent.setClassName("com.android.providers.downloads.ui", "com.android.providers.downloads.ui.DownloadList");
+            intent.setClassName("com.android.providers.downloads.ui",
+                    "com.android.providers.downloads.ui.DownloadList");
             List<ResolveInfo> list = context.getPackageManager().queryIntentActivities(intent,
                     PackageManager.MATCH_DEFAULT_ONLY);
             return list.size() > 0;
