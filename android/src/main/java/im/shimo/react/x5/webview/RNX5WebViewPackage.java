@@ -27,6 +27,8 @@ import android.util.Log;
 import android.webkit.JsResult;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.annotation.TargetApi;
+import android.content.ClipData;
 
 public class RNX5WebViewPackage implements ReactPackage {
 
@@ -158,9 +160,9 @@ public class RNX5WebViewPackage implements ReactPackage {
             } else if (requestCode == REQUEST_SELECT_FILE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 if (mUploadMessageArr == null)
                     return;
-
-                mUploadMessageArr.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
-                mUploadMessageArr = null;
+                onActivityResultAboveL(requestCode,resultCode,data);
+                // mUploadMessageArr.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+                // mUploadMessageArr = null;
             }
         }
 
@@ -168,8 +170,34 @@ public class RNX5WebViewPackage implements ReactPackage {
             this.onActivityResult(requestCode, resultCode, data);
         }
 
+        //这里intent.getClipData()方法需要在api16以上才能使用这个
+        @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+        private void onActivityResultAboveL(int requestCode, int resultCode, Intent intent) {
+            if (requestCode != REQUEST_SELECT_FILE || mUploadMessageArr == null)
+                return;
+            Uri[] results = null;
+            if (resultCode == Activity.RESULT_OK) {
+                if (intent != null) {
+                    String dataString = intent.getDataString();
+                    ClipData clipData = intent.getClipData();
+                    if (clipData != null) {
+                        results = new Uri[clipData.getItemCount()];
+                        for (int i = 0; i < clipData.getItemCount(); i++) {
+                            ClipData.Item item = clipData.getItemAt(i);
+                            results[i] = item.getUri();
+                        }
+                    }
+                    if (dataString != null)
+                        results = new Uri[] { Uri.parse(dataString) };
+                }
+            }
+            mUploadMessageArr.onReceiveValue(results);
+            mUploadMessageArr = null;
+        }
+
         public void onNewIntent(Intent intent) {
         }
+
     }
 
     @Override
@@ -194,6 +222,7 @@ public class RNX5WebViewPackage implements ReactPackage {
         modules.add(viewManager);
         return modules;
     }
+
     public X5WebViewModule getModule() {
         return module;
     }
