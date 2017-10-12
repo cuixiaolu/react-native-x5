@@ -17,8 +17,11 @@ import android.os.Environment;
 import android.content.pm.ResolveInfo;
 import android.content.pm.PackageManager;
 import android.webkit.URLUtil;
+import android.util.Base64;
 
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * 下载
@@ -50,8 +53,17 @@ public class RNX5WebViewDownload implements DownloadListener {
                 request.addRequestHeader("cookie", cookies);
                 request.addRequestHeader("User-Agent", userAgent);
 
-                String fileName = URLUtil.guessFileName(url, contentDisposition,
-                mimetype);
+                String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
+                try{
+                    Pattern pattern = Pattern.compile("\\?utf-8\\?B\\?(.*)?\\?=");
+                    Matcher matcher = pattern.matcher(contentDisposition);
+
+                    while(matcher.find()){
+                        fileName =new String(Base64.decode(matcher.group(1).getBytes(),Base64.DEFAULT),"utf-8");
+                    }
+                }catch(Exception e){
+                }
+
                 request.setTitle(fileName);
                 // in order for this if to run, you must use the android 3.2 to compile your app
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
@@ -72,7 +84,6 @@ public class RNX5WebViewDownload implements DownloadListener {
             e.printStackTrace();
         }
     }
-
     /**
      * 判断是否支持 Download Manager
      * @param context used to check the device version and DownloadManager information

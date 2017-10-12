@@ -391,7 +391,7 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
     public void setUserAgent(WebView view, @Nullable String userAgent) {
         if (userAgent != null) {
             // TODO(8496850): Fix incorrect behavior when property is unset (uA == null)
-            view.getSettings().setUserAgentString(userAgent);
+            view.getSettings().setUserAgentString(view.getSettings().getUserAgentString()+ userAgent);
         }
     }
 
