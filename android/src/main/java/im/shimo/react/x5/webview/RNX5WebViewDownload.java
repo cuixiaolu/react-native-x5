@@ -42,12 +42,14 @@ public class RNX5WebViewDownload implements DownloadListener {
             if (!isDownloadManagerAvailable(reactContext))
             // if (1==1)
             {
+                System.out.print(url);
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 reactContext.startActivity(intent);
             } else {
                 DownloadManager.Request request = new DownloadManager.Request(uri);
 
+                System.out.print(url);
                 request.setMimeType(mimetype);
                 String cookies = CookieManager.getInstance().getCookie(url);
                 request.addRequestHeader("cookie", cookies);
@@ -63,6 +65,7 @@ public class RNX5WebViewDownload implements DownloadListener {
                     }
                 }catch(Exception e){
                 }
+                System.out.print(fileName);
 
                 request.setTitle(fileName);
                 // in order for this if to run, you must use the android 3.2 to compile your app

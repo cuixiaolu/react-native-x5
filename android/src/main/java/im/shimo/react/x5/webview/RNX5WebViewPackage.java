@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import com.tencent.smtt.sdk.WebView;
+import com.tencent.smtt.sdk.WebChromeClient;
+import com.tencent.smtt.sdk.ValueCallback;
+import com.tencent.smtt.export.external.interfaces.JsResult;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -24,9 +27,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.webkit.JsResult;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
 import android.annotation.TargetApi;
 import android.content.ClipData;
 
@@ -125,6 +125,8 @@ public class RNX5WebViewPackage implements ReactPackage {
                 mUploadMessageArr.onReceiveValue(null);
                 mUploadMessageArr = null;
             }
+            System.out.print("android 5.0");
+            Log.d("android X5","current version 5.0+");
             mUploadMessageArr = filePathCallback;
 
             Activity currentActivity = getCurrentActivity();
@@ -160,9 +162,9 @@ public class RNX5WebViewPackage implements ReactPackage {
             } else if (requestCode == REQUEST_SELECT_FILE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 if (mUploadMessageArr == null)
                     return;
-                onActivityResultAboveL(requestCode,resultCode,data);
-                // mUploadMessageArr.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
-                // mUploadMessageArr = null;
+                // onActivityResultAboveL(requestCode,resultCode,data);
+                mUploadMessageArr.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+                mUploadMessageArr = null;
             }
         }
 

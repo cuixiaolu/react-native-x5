@@ -293,8 +293,9 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
         @SuppressLint("NewApi")
         public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
                 FileChooserParams fileChooserParams) {
+            return super.onShowFileChooser(webView, new X5WebValueCallback(filePathCallback), fileChooserParams);
 
-            return aPackage.getModule().startFileChooserIntent(filePathCallback, fileChooserParams.createIntent());
+            //return aPackage.getModule().startFileChooserIntent(filePathCallback, fileChooserParams.createIntent());
         }
     }
 
@@ -555,5 +556,18 @@ public class RNX5WebViewManager extends SimpleViewManager<WebView> {
 
     public RNX5WebViewPackage getPackage() {
         return this.aPackage;
+    }
+    public static class X5WebValueCallback<T> implements ValueCallback<T> {
+        private android.webkit.ValueCallback<T> xPS;
+
+        public X5WebValueCallback(ValueCallback<T> valueCallback) {
+            this.xPS = valueCallback;
+        }
+
+        public final void onReceiveValue(T t) {
+            if (this.xPS != null) {
+                this.xPS.onReceiveValue(t);
+            }
+        }
     }
 }
